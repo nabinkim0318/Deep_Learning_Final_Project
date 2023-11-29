@@ -126,3 +126,15 @@ def preprocess_dataset(X):
         next_observation[:, :, i][mask] = means[i]
 
     return X, delta, delta_future, M, last_observation, next_observation, empirical_mean
+
+class GRUDF_Weighted_Loss(nn.Module):
+    def __init__(self, pos_weight, neg_weight):
+        super(GRUDF_Weighted_Loss, self).__init__()
+        self.pos_weight = pos_weight
+        self.neg_weight = neg_weight
+
+    def forward(self, X, y_pred, y_true):
+        missing_ratio = torch.isnan(X).view(X.size(0), -1).sum(1)/(X.size(1) * X.size(2))
+        loss = -(1 - missing_ratio) * (self.pos_weight * y_true * torch.log(y_pred) + 
+                             self.neg_weight * (1 - y_true) * torch.log(1 - y_pred))
+        return torch.mean(loss)
