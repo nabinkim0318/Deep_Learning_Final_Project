@@ -1,4 +1,4 @@
-from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix
+from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix, ConfusionMatrixDisplay
 import numpy as np
 
 def accuracies(y_true, y_pred, adaptive=True):
@@ -14,7 +14,10 @@ def accuracies(y_true, y_pred, adaptive=True):
         best_thres = 0.5
 
     y_pred_val = np.where(np.array(y_pred).flatten() >= best_thres, 1, 0)
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred_val).ravel()
+    cm = confusion_matrix(y_true, y_pred_val)
+    tn, fp, fn, tp = cm.ravel()
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    disp.plot()
     accuracy = (tp + tn) / (tn + fp + fn + tp)
     sensitivity = tp / (tp + fn)
     specificity = tn / (tn + fp)
