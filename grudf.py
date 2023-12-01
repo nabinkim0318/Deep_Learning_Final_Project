@@ -97,7 +97,8 @@ class GRU_DF(nn.Module):
         for t in range(X.size(1)):
             h_t = self.gru_d_cell(X[:, t, :], delta[:, t, :], delta_future[:, t, :], M[:, t, :], h_t, last_observation[:, t, :], next_observation[:, t, :], 
                                   empirical_mean)
-        output = self.sigmoid(self.output_layer(h_t))
+        #output = self.sigmoid(self.output_layer(h_t))
+        output = self.output_layer(h_t)
         return output.squeeze()
     
 def preprocess_dataset(X):
