@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import grud
+import os
 
 class GRU_DF_Cell(nn.Module):
     def __init__(self, input_size, hidden_size):
@@ -136,5 +137,5 @@ class GRUDF_Weighted_Loss(nn.Module):
     def forward(self, X, y_pred, y_true):
         missing_ratio = torch.isnan(X).view(X.size(0), -1).sum(1)/(X.size(1) * X.size(2))
         loss = -(1 - missing_ratio) * (self.pos_weight * y_true * torch.log(y_pred) + 
-                             self.neg_weight * (1 - y_true) * torch.log(1 - y_pred))
+                    self.neg_weight * (1 - y_true) * torch.log(1 - y_pred))
         return torch.mean(loss)

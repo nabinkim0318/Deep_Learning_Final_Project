@@ -28,7 +28,8 @@ class GRU_D_Cell(nn.Module):
         self.bias_n = nn.Parameter(torch.Tensor(hidden_size))
 
         # Weights for the decay terms
-        self.decay_Wx = nn.Parameter(torch.Tensor(input_size, input_size))
+        # self.decay_Wx = nn.Parameter(torch.Tensor(input_size, input_size))
+        self.diag_elements = nn.Parameter(torch.Tensor(input_size))
         self.decay_bx = nn.Parameter(torch.Tensor(input_size))
         self.decay_Wh = nn.Parameter(torch.Tensor(hidden_size, input_size))
         self.decay_bh = nn.Parameter(torch.Tensor(hidden_size))
@@ -39,7 +40,7 @@ class GRU_D_Cell(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        # Initialization method (Xavier for this example)
+        # Initialization method
         nn.init.xavier_uniform_(self.weight_zx)
         nn.init.xavier_uniform_(self.weight_zh)
         nn.init.xavier_uniform_(self.weight_zm)
@@ -49,7 +50,8 @@ class GRU_D_Cell(nn.Module):
         nn.init.xavier_uniform_(self.weight_nx)
         nn.init.xavier_uniform_(self.weight_nh)
         nn.init.xavier_uniform_(self.weight_nm)
-        nn.init.xavier_uniform_(self.decay_Wx)
+        # nn.init.xavier_uniform_(self.decay_Wx)
+        nn.init.uniform_(self.diag_elements, a=-0.01, b=0.01)
         nn.init.xavier_uniform_(self.decay_Wh)
 
         self.bias_z.data.fill_(0)
@@ -59,6 +61,7 @@ class GRU_D_Cell(nn.Module):
         self.decay_bh.data.fill_(0)
 
     def forward(self, x, delta, m, h_prev, x_last_observed, empirical_mean):
+        self.decay_Wx = torch.diag(self.diag_elements)
         gamma_x = torch.exp(-torch.max(torch.zeros_like(delta), torch.matmul(delta, self.decay_Wx.t()) + self.decay_bx))
         gamma_h = torch.exp(-torch.max(torch.zeros_like(h_prev), torch.matmul(delta, self.decay_Wh.t()) + self.decay_bh))
 
