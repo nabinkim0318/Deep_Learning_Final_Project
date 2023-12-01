@@ -30,13 +30,13 @@ class GRU_DF_Cell(nn.Module):
         self.bias_n = nn.Parameter(torch.Tensor(hidden_size))
 
         # Weights for the decay terms
-        self.decay_Wx = nn.Parameter(torch.Tensor(input_size, input_size))
+        self.decay_Wx_diag = nn.Parameter(torch.Tensor(input_size))
         self.decay_bx = nn.Parameter(torch.Tensor(input_size))
         self.decay_Wh = nn.Parameter(torch.Tensor(hidden_size, input_size))
         self.decay_bh = nn.Parameter(torch.Tensor(hidden_size))
 
         #Weights for the future decay terms
-        self.decay_future_Wx = nn.Parameter(torch.Tensor(input_size, input_size))
+        self.decay_future_Wx_diag = nn.Parameter(torch.Tensor(input_size))
         self.decay_future_bx = nn.Parameter(torch.Tensor(input_size))
 
         self.sigmoid = nn.Sigmoid()
@@ -55,9 +55,9 @@ class GRU_DF_Cell(nn.Module):
         nn.init.xavier_uniform_(self.weight_nx)
         nn.init.xavier_uniform_(self.weight_nh)
         nn.init.xavier_uniform_(self.weight_nm)
-        nn.init.xavier_uniform_(self.decay_Wx)
+        nn.init.uniform_(self.decay_Wx_diag, a=-0.01, b=0.01)
         nn.init.xavier_uniform_(self.decay_Wh)
-        nn.init.xavier_uniform_(self.decay_future_Wx)
+        nn.init.uniform_(self.decay_future_Wx_diag, a=-0.01, b=0.01)
 
         self.bias_z.data.fill_(0)
         self.bias_r.data.fill_(0)
@@ -67,10 +67,12 @@ class GRU_DF_Cell(nn.Module):
         self.decay_future_bx.data.fill_(0)
 
     def forward(self, x, delta, delta_future, m, h_prev, x_last_observed, x_next_observed, empirical_mean):
-        gamma_x = torch.exp(-torch.max(torch.zeros_like(delta), torch.matmul(delta, self.decay_Wx.t()) + self.decay_bx))
+        decay_Wx = torch.diag(self.decay_Wx_diag)
+        decay_future_Wx = torch.diag(self.decay_future_Wx_diag)
+        gamma_x = torch.exp(-torch.max(torch.zeros_like(delta), torch.matmul(delta, decay_Wx.t()) + self.decay_bx))
         gamma_h = torch.exp(-torch.max(torch.zeros_like(h_prev), torch.matmul(delta, self.decay_Wh.t()) + self.decay_bh))
         gamma_x_future = torch.exp(-torch.max(torch.zeros_like(delta_future), 
-                                              torch.matmul(delta_future, self.decay_future_Wx.t()) + self.decay_future_bx))
+                                              torch.matmul(delta_future, decay_future_Wx.t()) + self.decay_future_bx))
         
         x_nan_to_num = torch.nan_to_num(x)
         x_hat = m * x_nan_to_num + (1 - m) * (gamma_x * x_last_observed + gamma_x_future * x_next_observed + (1 - gamma_x - gamma_x_future) * empirical_mean)
